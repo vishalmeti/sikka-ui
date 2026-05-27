@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sikka — Loyalty Infrastructure for Local Commerce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #0A0A08;
+  --white: #FAFAF7;
+  --off: #F4F3EE;
+  --gold: #C8960A;
+  --gold-light: #F5C842;
+  --gold-dim: rgba(200,150,10,0.12);
+  --muted: #6B6B5E;
+  --border: rgba(10,10,8,0.08);
+  --border-strong: rgba(10,10,8,0.14);
+  --coin-face: #E8B830;
+  --coin-shadow: #A07808;
+  --green: #1A6645;
+  --green-bg: rgba(26,102,69,0.08);
+  --radius: 12px;
+  --radius-lg: 20px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--white);
+  color: var(--black);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── COINS CANVAS ── */
+#coin-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.fc {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #FFE066 0%, #E8B830 45%, #A07808 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  color: rgba(80,48,0,0.5);
+  animation: riseCoin linear infinite;
+  opacity: 0;
+  will-change: transform;
+}
+.fc::after {
+  content: '₹';
+  font-size: inherit;
+}
+@keyframes riseCoin {
+  0%   { transform: translateY(0) rotate(0deg) scale(0.8);   opacity: 0; }
+  6%   { opacity: 0.55; }
+  90%  { opacity: 0.2; }
+  100% { transform: translateY(-110vh) rotate(540deg) scale(1); opacity: 0; }
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px;
+  height: 64px;
+  background: rgba(250,250,247,0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  transition: border-color 0.3s;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  color: var(--black);
+  text-decoration: none;
+  letter-spacing: -0.3px;
+}
+.logo-coin {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #FFE066, #C8960A);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  color: rgba(80,48,0,0.6);
+  flex-shrink: 0;
+  animation: logoGlow 3s ease-in-out infinite;
+}
+@keyframes logoGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200,150,10,0); }
+  50%       { box-shadow: 0 0 0 6px rgba(200,150,10,0.12); }
+}
+.nav-links {
+  display: flex; gap: 36px; list-style: none;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.nav-links a {
+  font-size: 14px; font-weight: 400;
+  color: var(--muted); text-decoration: none;
+  letter-spacing: 0.1px;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--black); }
+.nav-right { display: flex; gap: 12px; align-items: center; }
+.btn-ghost {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 400;
+  color: var(--muted); background: transparent;
+  border: none; cursor: pointer; padding: 8px 4px;
+  text-decoration: none; transition: color 0.2s;
+}
+.btn-ghost:hover { color: var(--black); }
+.btn-nav {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 500;
+  color: var(--white); background: var(--black);
+  border: none; cursor: pointer;
+  padding: 9px 22px; border-radius: 100px;
+  text-decoration: none; letter-spacing: 0.1px;
+  transition: background 0.2s, transform 0.15s;
+}
+.btn-nav:hover { background: #2A2A24; transform: translateY(-1px); }
+
+/* ── SECTIONS ── */
+section { position: relative; z-index: 1; }
+
+/* ── HERO ── */
+#hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 48px 96px;
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 36px;
+  opacity: 0; animation: fadeUp 0.7s 0.1s ease forwards;
+}
+.hero-eyebrow::before {
+  content: '';
+  width: 20px; height: 1px;
+  background: var(--gold);
+}
+.hero-eyebrow::after {
+  content: '';
+  width: 20px; height: 1px;
+  background: var(--gold);
+}
+h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 400;
+  line-height: 1.0;
+  letter-spacing: -2px;
+  max-width: 880px;
+  opacity: 0; animation: fadeUp 0.8s 0.2s ease forwards;
+}
+h1 em {
+  font-style: italic;
+  color: var(--gold);
+}
+.hero-sub {
+  max-width: 480px;
+  margin: 28px auto 0;
+  font-size: 17px; font-weight: 300; line-height: 1.7;
+  color: var(--muted);
+  opacity: 0; animation: fadeUp 0.8s 0.35s ease forwards;
+}
+.hero-sub strong { font-weight: 500; color: var(--black); }
+.hero-actions {
+  display: flex; gap: 12px; margin-top: 44px;
+  justify-content: center; flex-wrap: wrap;
+  opacity: 0; animation: fadeUp 0.7s 0.45s ease forwards;
+}
+.btn-primary {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 500;
+  color: var(--white); background: var(--black);
+  border: none; cursor: pointer;
+  padding: 14px 32px; border-radius: 100px;
+  text-decoration: none; letter-spacing: 0.1px;
+  transition: all 0.2s;
+}
+.btn-primary:hover { background: #2A2A24; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,10,8,0.15); }
+.btn-outline {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 400;
+  color: var(--black); background: transparent;
+  border: 1px solid var(--border-strong); cursor: pointer;
+  padding: 14px 28px; border-radius: 100px;
+  text-decoration: none; letter-spacing: 0.1px;
+  transition: all 0.2s;
+}
+.btn-outline:hover { border-color: rgba(10,10,8,0.3); background: var(--off); }
+
+/* HERO METRICS */
+.hero-metrics {
+  display: flex; gap: 0;
+  margin-top: 80px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--white);
+  opacity: 0; animation: fadeUp 0.7s 0.55s ease forwards;
+}
+.metric {
+  padding: 24px 40px; flex: 1;
+  position: relative; text-align: left;
+}
+.metric:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+.metric-n {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px; font-weight: 400;
+  color: var(--black); letter-spacing: -0.5px;
+  display: block;
+}
+.metric-l {
+  font-size: 13px; color: var(--muted);
+  display: block; margin-top: 4px;
+}
+
+/* ── DIVIDER ── */
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 48px;
+}
+
+/* ── LOGOS / TRUST ── */
+#trust {
+  padding: 56px 48px;
+  display: flex; align-items: center; gap: 48px;
+}
+.trust-label {
+  font-size: 12px; font-weight: 500; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted);
+  flex-shrink: 0; white-space: nowrap;
+}
+.trust-logos {
+  display: flex; gap: 32px; align-items: center;
+  overflow: hidden; flex: 1;
+}
+.trust-logo {
+  font-size: 13px; font-weight: 500; color: rgba(10,10,8,0.3);
+  white-space: nowrap; letter-spacing: 0.3px;
+}
+
+/* ── HOW ── */
+#how {
+  padding: 120px 48px;
+  max-width: 1160px;
+  margin: 0 auto;
+}
+.label {
+  font-size: 12px; font-weight: 500; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--gold);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 20px;
+}
+.label::before { content: ''; width: 20px; height: 1px; background: var(--gold); }
+h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(36px, 5vw, 60px);
+  font-weight: 400; letter-spacing: -1.5px; line-height: 1.05;
+  margin-bottom: 16px;
+}
+h2 em { font-style: italic; color: var(--gold); }
+.sub {
+  font-size: 16px; font-weight: 300; color: var(--muted); line-height: 1.7;
+  max-width: 420px;
+}
+.steps {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: 64px;
+}
+.step {
+  background: var(--white);
+  padding: 48px 36px;
+  position: relative;
+  transition: background 0.25s;
+}
+.step:hover { background: var(--off); }
+.step-n {
+  font-family: 'DM Serif Display', serif;
+  font-size: 13px; color: var(--muted);
+  margin-bottom: 32px;
+  display: block;
+}
+.step-icon {
+  width: 48px; height: 48px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  margin-bottom: 24px;
+  background: var(--white);
+}
+h3 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px; font-weight: 500;
+  letter-spacing: -0.3px; margin-bottom: 10px;
+}
+.step p {
+  font-size: 14px; font-weight: 300; color: var(--muted); line-height: 1.75;
+}
+.step-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 20px;
+  font-size: 12px; font-weight: 500;
+  color: var(--green);
+  background: var(--green-bg);
+  padding: 5px 12px; border-radius: 100px;
+  letter-spacing: 0.2px;
+}
+
+/* ── PRODUCT DEMO ── */
+#product {
+  padding: 120px 48px;
+  background: var(--off);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.product-inner {
+  max-width: 1160px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 420px;
+  gap: 80px; align-items: center;
+}
+.product-content .label { margin-bottom: 20px; }
+
+/* PHONE */
+.phone-wrap {
+  display: flex; justify-content: center;
+  position: relative;
+}
+.phone {
+  width: 260px;
+  background: var(--black);
+  border-radius: 40px;
+  padding: 12px;
+  position: relative;
+  box-shadow: 0 40px 80px rgba(10,10,8,0.2), 0 0 0 1px rgba(255,255,255,0.05) inset;
+}
+.phone-notch {
+  width: 72px; height: 22px;
+  background: var(--black);
+  border-radius: 100px;
+  margin: 0 auto 12px;
+  position: relative; z-index: 2;
+}
+.phone-screen {
+  background: #F9F8F4;
+  border-radius: 30px;
+  padding: 20px 16px 24px;
+  min-height: 460px;
+  overflow: hidden;
+  position: relative;
+}
+.ps-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px;
+}
+.ps-title {
+  font-size: 17px; font-weight: 500;
+  color: var(--black); letter-spacing: -0.3px;
+}
+.ps-store {
+  font-size: 11px; color: var(--muted);
+  margin-top: 1px;
+}
+.ps-notif {
+  width: 30px; height: 30px;
+  border-radius: 50%; background: rgba(10,10,8,0.06);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+
+/* Wallet card */
+.ps-wallet {
+  background: var(--black);
+  border-radius: 18px;
+  padding: 20px 18px;
+  margin-bottom: 14px;
+  position: relative; overflow: hidden;
+}
+.ps-wallet::before {
+  content: '';
+  position: absolute;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.05);
+  top: -40px; right: -40px;
+}
+.ps-wallet-lbl { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-transform: uppercase; }
+.ps-wallet-amt {
+  font-family: 'DM Serif Display', serif;
+  font-size: 38px; color: #fff;
+  letter-spacing: -1px; margin: 6px 0 2px;
+  display: flex; align-items: baseline; gap: 6px;
+}
+.ps-wallet-amt .coin-icon-sm {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #FFE066, #C8960A);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; color: rgba(80,48,0,0.6);
+  font-family: 'DM Sans';
+}
+.ps-wallet-sub { font-size: 11px; color: rgba(255,255,255,0.4); }
+.ps-tier {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px;
+}
+.ps-tier-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 100px; margin: 0 10px; overflow: hidden; }
+.ps-tier-fill { height: 100%; width: 68%; background: var(--gold-light); border-radius: 100px; animation: tierFill 1.5s 0.8s ease both; }
+@keyframes tierFill { from { width: 0; } to { width: 68%; } }
+.ps-tier-lbl { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+/* Txns */
+.ps-txns { display: flex; flex-direction: column; gap: 6px; }
+.ps-txn {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border-radius: 12px;
+  padding: 10px 12px;
+  animation: txnIn 0.35s ease both;
+}
+.ps-txn:nth-child(1) { animation-delay: 0.6s; }
+.ps-txn:nth-child(2) { animation-delay: 0.75s; }
+.ps-txn:nth-child(3) { animation-delay: 0.9s; }
+@keyframes txnIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.ps-txn-icon {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--off); font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ps-txn-info { flex: 1; }
+.ps-txn-name { font-size: 12px; font-weight: 500; color: var(--black); }
+.ps-txn-time { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.ps-txn-coins {
+  font-family: 'DM Serif Display', serif;
+  font-size: 14px; color: var(--gold);
+}
+
+/* Floating coin from phone */
+.phone-coin {
+  position: absolute;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #FFE066, #C8960A);
+  animation: phoneCoinRise 2s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes phoneCoinRise {
+  0%   { opacity: 0; transform: translateY(0) scale(0.5); }
+  20%  { opacity: 0.8; }
+  80%  { opacity: 0.3; }
+  100% { opacity: 0; transform: translateY(-180px) scale(1); }
+}
+
+/* Coin counter pulse */
+#liveCoins { display: inline-block; transition: transform 0.2s; }
+#liveCoins.bump { transform: scale(1.12); color: var(--gold-light) !important; }
+
+/* Product features list */
+.feat-list {
+  display: flex; flex-direction: column; gap: 20px;
+  margin-top: 48px;
+}
+.feat-item {
+  display: flex; gap: 16px; align-items: flex-start;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.feat-item:last-child { border-bottom: none; padding-bottom: 0; }
+.feat-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 13px; color: var(--muted);
+  flex-shrink: 0; padding-top: 2px;
+  min-width: 24px;
+}
+.feat-item h4 {
+  font-size: 15px; font-weight: 500; margin-bottom: 4px; letter-spacing: -0.2px;
+}
+.feat-item p { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.65; }
+
+/* ── FOR SHOPS ── */
+#shops {
+  padding: 120px 48px;
+  max-width: 1160px; margin: 0 auto;
+}
+.shops-intro {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 80px; align-items: end;
+  margin-bottom: 64px;
+}
+.shop-types {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 24px;
+}
+.shop-pill {
+  font-size: 13px; font-weight: 400;
+  color: var(--black);
+  border: 1px solid var(--border-strong);
+  padding: 7px 16px; border-radius: 100px;
+  letter-spacing: 0.1px;
+  transition: all 0.2s; cursor: default;
+}
+.shop-pill:hover { background: var(--black); color: var(--white); border-color: var(--black); }
+.shop-pill.gold { border-color: rgba(200,150,10,0.35); color: var(--gold); background: var(--gold-dim); }
+.shops-quote {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px; font-style: italic;
+  line-height: 1.5; letter-spacing: -0.3px;
+  color: var(--muted); max-width: 380px;
+}
+.shops-quote span { color: var(--black); font-style: normal; }
+.shops-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.shop-feat {
+  background: var(--white); padding: 36px 28px;
+  transition: background 0.25s; position: relative;
+}
+.shop-feat:hover { background: var(--off); }
+.shop-feat-icon {
+  width: 40px; height: 40px;
+  font-size: 20px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+}
+.shop-feat h4 { font-size: 16px; font-weight: 500; margin-bottom: 8px; letter-spacing: -0.2px; }
+.shop-feat p { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.7; }
+
+/* ── TIERS ── */
+#tiers {
+  padding: 120px 48px;
+  background: var(--off);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.tiers-inner { max-width: 1160px; margin: 0 auto; }
+.tiers-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; margin-top: 64px;
+}
+.tier-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 28px;
+  transition: all 0.25s; cursor: default;
+}
+.tier-card:hover { box-shadow: 0 8px 32px rgba(10,10,8,0.07); transform: translateY(-4px); }
+.tier-card.featured { border-color: var(--gold); }
+.tier-icon { font-size: 28px; margin-bottom: 20px; display: block; }
+.tier-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px; font-weight: 400; letter-spacing: -0.3px;
+  margin-bottom: 6px;
+}
+.tier-range { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.tier-earn {
+  font-family: 'DM Serif Display', serif;
+  font-size: 36px; font-weight: 400; color: var(--gold);
+  letter-spacing: -1px;
+}
+.tier-earn-lbl { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.tier-perks { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+.tier-perk {
+  font-size: 13px; color: var(--muted); font-weight: 300;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.tier-perk::before { content: '—'; color: var(--border-strong); flex-shrink: 0; }
+
+/* ── PRICING ── */
+#pricing {
+  padding: 120px 48px;
+  max-width: 1160px; margin: 0 auto;
+}
+.pricing-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 16px; margin-top: 64px; max-width: 720px;
+}
+.plan {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  transition: all 0.25s;
+}
+.plan:hover { box-shadow: 0 8px 32px rgba(10,10,8,0.07); }
+.plan.featured { background: var(--black); border-color: var(--black); }
+.plan-name {
+  font-size: 12px; font-weight: 500; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 24px;
+}
+.plan.featured .plan-name { color: rgba(255,255,255,0.4); }
+.plan-price {
+  font-family: 'DM Serif Display', serif;
+  font-size: 48px; font-weight: 400; letter-spacing: -1.5px;
+  color: var(--black);
+}
+.plan.featured .plan-price { color: var(--white); }
+.plan-price sup { font-size: 20px; vertical-align: super; letter-spacing: 0; }
+.plan-period { font-size: 14px; color: var(--muted); font-family: 'DM Sans'; font-weight: 300; }
+.plan.featured .plan-period { color: rgba(255,255,255,0.4); }
+.plan-desc { font-size: 14px; color: var(--muted); font-weight: 300; line-height: 1.6; margin: 16px 0 28px; }
+.plan.featured .plan-desc { color: rgba(255,255,255,0.5); }
+.plan-feats { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+.plan-feat { font-size: 13px; color: var(--muted); font-weight: 300; display: flex; gap: 10px; }
+.plan.featured .plan-feat { color: rgba(255,255,255,0.6); }
+.plan-feat::before { content: '✓'; color: var(--green); font-weight: 500; flex-shrink: 0; }
+.plan.featured .plan-feat::before { color: var(--gold-light); }
+.plan-btn {
+  display: block; width: 100%; text-align: center;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  padding: 13px; border-radius: 100px; cursor: pointer;
+  text-decoration: none; transition: all 0.2s; border: none;
+  letter-spacing: 0.1px;
+}
+.plan-btn.dark { background: var(--black); color: var(--white); }
+.plan-btn.dark:hover { background: #2A2A24; }
+.plan-btn.light { background: rgba(255,255,255,0.1); color: var(--white); }
+.plan-btn.light:hover { background: rgba(255,255,255,0.18); }
+.pricing-note {
+  margin-top: 24px;
+  font-size: 13px; color: var(--muted); font-weight: 300;
+  display: flex; gap: 8px; align-items: center;
+}
+.pricing-note::before { content: '↳'; color: var(--muted); }
+
+/* ── CTA ── */
+#cta {
+  padding: 160px 48px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+#cta h2 { max-width: 640px; margin: 0 auto 16px; }
+#cta .sub { margin: 0 auto 48px; max-width: 380px; }
+.cta-form {
+  display: flex; gap: 8px; max-width: 400px; margin: 0 auto;
+}
+.cta-input {
+  flex: 1; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 300;
+  background: var(--white); color: var(--black);
+  border: 1px solid var(--border-strong);
+  padding: 13px 20px; border-radius: 100px; outline: none;
+  transition: border-color 0.2s;
+}
+.cta-input::placeholder { color: rgba(10,10,8,0.35); }
+.cta-input:focus { border-color: rgba(10,10,8,0.3); }
+.cta-submit {
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  background: var(--black); color: var(--white);
+  border: none; cursor: pointer;
+  padding: 13px 28px; border-radius: 100px;
+  white-space: nowrap; transition: all 0.2s;
+}
+.cta-submit:hover { background: #2A2A24; transform: translateY(-1px); }
+.cta-note { font-size: 12px; color: var(--muted); margin-top: 16px; font-weight: 300; }
+.cta-count {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 500; color: var(--green);
+  background: var(--green-bg);
+  padding: 5px 14px; border-radius: 100px;
+  margin-bottom: 40px; letter-spacing: 0.2px;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); animation: blink 1.8s ease-in-out infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ── FOOTER ── */
+footer {
+  padding: 40px 48px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 1;
+}
+.foot-logo {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px; color: var(--black);
+  text-decoration: none;
+}
+.foot-links { display: flex; gap: 28px; }
+.foot-links a { font-size: 13px; color: var(--muted); text-decoration: none; font-weight: 300; transition: color 0.2s; }
+.foot-links a:hover { color: var(--black); }
+.foot-right { font-size: 12px; color: rgba(10,10,8,0.35); font-weight: 300; text-align: right; }
+.foot-pilot {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500;
+  color: var(--green);
+  margin-top: 6px;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.reveal.on { opacity: 1; transform: none; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  nav { padding: 0 24px; }
+  .nav-links { display: none; }
+  #hero, #how, #shops, #tiers, #pricing, #cta { padding-left: 24px; padding-right: 24px; }
+  #product { padding: 80px 24px; }
+  h1 { letter-spacing: -1.5px; }
+  .hero-metrics { flex-direction: column; }
+  .metric:not(:last-child) { border-right: none; border-bottom: 1px solid var(--border); }
+  .steps { grid-template-columns: 1fr; }
+  .product-inner { grid-template-columns: 1fr; }
+  .phone-wrap { margin-bottom: 48px; order: -1; }
+  .shops-intro { grid-template-columns: 1fr; gap: 32px; }
+  .shops-grid, .tiers-grid { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
+  hr { margin: 0 24px; }
+  #trust { flex-direction: column; gap: 24px; }
+  footer { flex-direction: column; gap: 20px; text-align: center; }
+  .foot-right { text-align: center; }
+  .cta-form { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- Coin canvas -->
+<div id="coin-canvas"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-coin">₹</div>
+    Sikka
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#product">Product</a></li>
+    <li><a href="#shops">For shops</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="#" class="btn-ghost">Sign in</a>
+    <a href="#cta" class="btn-nav">Get early access</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-eyebrow">Launching in Bengaluru</div>
+  <h1>Loyalty rewards for<br><em>every local shop.</em></h1>
+  <p class="hero-sub">Customers earn <strong>Sikka coins</strong> every time they pay via UPI. No new hardware. No new payment app. Zero friction — just loyalty that works.</p>
+  <div class="hero-actions">
+    <a href="#cta" class="btn-primary">Get early access</a>
+    <a href="#how" class="btn-outline">See how it works</a>
+  </div>
+  <div class="hero-metrics reveal">
+    <div class="metric">
+      <span class="metric-n">10%</span>
+      <span class="metric-l">Coins on every rupee spent</span>
+    </div>
+    <div class="metric">
+      <span class="metric-n">5 : ₹1</span>
+      <span class="metric-l">Redemption rate</span>
+    </div>
+    <div class="metric">
+      <span class="metric-n">UPI</span>
+      <span class="metric-l">Works with all UPI apps</span>
+    </div>
+    <div class="metric">
+      <span class="metric-n">₹0</span>
+      <span class="metric-l">Customer fees, always</span>
+    </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- TRUST -->
+<section id="trust">
+  <span class="trust-label">Works where your customers already pay</span>
+  <div class="trust-logos">
+    <span class="trust-logo">PhonePe</span>
+    <span class="trust-logo">Google Pay</span>
+    <span class="trust-logo">Paytm</span>
+    <span class="trust-logo">BHIM</span>
+    <span class="trust-logo">Amazon Pay</span>
+    <span class="trust-logo">Any UPI App</span>
+  </div>
+</section>
+
+<hr>
+
+<!-- HOW -->
+<section id="how">
+  <div class="label">Simple by design</div>
+  <h2>Three steps to<br><em>your first reward</em></h2>
+  <p class="sub">No loyalty cards. No app-switching. Customers pay the way they already do — and earn automatically.</p>
+
+  <div class="steps reveal">
+    <div class="step">
+      <span class="step-n">01</span>
+      <div class="step-icon">📱</div>
+      <h3>Scan the store QR</h3>
+      <p>Customer opens Sikka and scans the store's code to register the visit and link the upcoming payment.</p>
+      <span class="step-tag">Takes 3 seconds</span>
+    </div>
+    <div class="step">
+      <span class="step-n">02</span>
+      <div class="step-icon">💸</div>
+      <h3>Pay via UPI as usual</h3>
+      <p>Money goes directly from customer to shop. Sikka never handles funds — no payment aggregator required.</p>
+      <span class="step-tag">100% secure</span>
+    </div>
+    <div class="step">
+      <span class="step-n">03</span>
+      <div class="step-icon">🪙</div>
+      <h3>Coins land instantly</h3>
+      <p>Payment confirmed → coins credited automatically. Redeem them as rupee discounts on the next visit.</p>
+      <span class="step-tag">Auto-credited</span>
+    </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- PRODUCT DEMO -->
+<section id="product">
+  <div class="product-inner">
+    <div class="product-content">
+      <div class="label">Customer app</div>
+      <h2>Loyalty that fits<br>in a pocket</h2>
+      <p class="sub">A lightweight app that tracks coins, shows tier progress, and makes redemptions one tap away.</p>
+
+      <div class="feat-list">
+        <div class="feat-item reveal">
+          <span class="feat-num">—</span>
+          <div>
+            <h4>Per-store coin wallets</h4>
+            <p>Coins are store-specific, building a genuine loyalty relationship between customer and shop.</p>
+          </div>
+        </div>
+        <div class="feat-item reveal">
+          <span class="feat-num">—</span>
+          <div>
+            <h4>Bronze → Silver → Gold tiers</h4>
+            <p>Higher tiers unlock better earn rates and exclusive double-coin offers from your store.</p>
+          </div>
+        </div>
+        <div class="feat-item reveal">
+          <span class="feat-num">—</span>
+          <div>
+            <h4>Visit streaks and badges</h4>
+            <p>Gamified milestones keep customers coming back — and give shops a reason to celebrate loyal regulars.</p>
+          </div>
+        </div>
+        <div class="feat-item reveal">
+          <span class="feat-num">—</span>
+          <div>
+            <h4>One-tap redemption</h4>
+            <p>Customers redeem coins as rupee discounts at checkout. Shop owners approve in a single tap.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-screen" id="phoneScreen">
+          <!-- Phone coins -->
+          <div id="phoneCoins" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:30px;"></div>
+
+          <div class="ps-header">
+            <div>
+              <div class="ps-title">My Wallet</div>
+              <div class="ps-store">Raju Kirana · Silver tier</div>
+            </div>
+            <div class="ps-notif">🔔</div>
+          </div>
+
+          <div class="ps-wallet">
+            <div class="ps-wallet-lbl">Sikka Coins</div>
+            <div class="ps-wallet-amt">
+              <span id="liveCoins">325</span>
+              <div class="coin-icon-sm">₹</div>
+            </div>
+            <div class="ps-wallet-sub">≈ ₹65 in rewards</div>
+            <div class="ps-tier">
+              <span class="ps-tier-lbl">Silver</span>
+              <div class="ps-tier-bar"><div class="ps-tier-fill"></div></div>
+              <span class="ps-tier-lbl">Gold in 175</span>
+            </div>
+          </div>
+
+          <div class="ps-txns">
+            <div class="ps-txn">
+              <div class="ps-txn-icon">🏪</div>
+              <div class="ps-txn-info">
+                <div class="ps-txn-name">Raju Kirana Store</div>
+                <div class="ps-txn-time">Today, 2:14 PM</div>
+              </div>
+              <div class="ps-txn-coins">+24 🪙</div>
+            </div>
+            <div class="ps-txn">
+              <div class="ps-txn-icon">🥬</div>
+              <div class="ps-txn-info">
+                <div class="ps-txn-name">Shubham Vegetables</div>
+                <div class="ps-txn-time">Yesterday, 9:30 AM</div>
+              </div>
+              <div class="ps-txn-coins">+15 🪙</div>
+            </div>
+            <div class="ps-txn">
+              <div class="ps-txn-icon">💊</div>
+              <div class="ps-txn-info">
+                <div class="ps-txn-name">Sri Medicals</div>
+                <div class="ps-txn-time">Mon, 11:00 AM</div>
+              </div>
+              <div class="ps-txn-coins">+30 🪙</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- FOR SHOPS -->
+<section id="shops">
+  <div class="shops-intro">
+    <div>
+      <div class="label">For shop owners</div>
+      <h2>Works for<br><em>any local shop</em></h2>
+      <p class="sub" style="max-width:100%">Quick commerce is taking your regulars. Sikka gives every neighbourhood shop the loyalty infrastructure that was only available to large chains — until now.</p>
+      <div class="shop-types">
+        <span class="shop-pill gold">Kirana stores</span>
+        <span class="shop-pill">Pharmacies</span>
+        <span class="shop-pill">Bakeries</span>
+        <span class="shop-pill">Vegetable stalls</span>
+        <span class="shop-pill">Salons & parlours</span>
+        <span class="shop-pill">Tea stalls</span>
+        <span class="shop-pill">Stationery shops</span>
+        <span class="shop-pill">Tailors</span>
+        <span class="shop-pill">Hardware stores</span>
+        <span class="shop-pill">Auto repair</span>
+        <span class="shop-pill">Any UPI shop</span>
+      </div>
+    </div>
+    <p class="shops-quote">"For the first time, I know <span>exactly who my 20 most loyal customers are</span> — and I can actually reward them."</p>
+  </div>
+
+  <div class="shops-grid reveal">
+    <div class="shop-feat">
+      <div class="shop-feat-icon">📊</div>
+      <h4>Loyalty dashboard</h4>
+      <p>Today's earnings, top regulars, outstanding coins. Know your best customers by name, not transaction ID.</p>
+    </div>
+    <div class="shop-feat">
+      <div class="shop-feat-icon">🎯</div>
+      <h4>Timed push offers</h4>
+      <p>Send 2× coin events on slow days. Push bonus offers to customers who haven't visited in a week.</p>
+    </div>
+    <div class="shop-feat">
+      <div class="shop-feat-icon">✅</div>
+      <h4>Redemption control</h4>
+      <p>You approve every redemption. Full margin visibility — one tap to confirm a discount at billing.</p>
+    </div>
+    <div class="shop-feat">
+      <div class="shop-feat-icon">📱</div>
+      <h4>Works with your UPI QR</h4>
+      <p>Register with your existing QR code. No hardware changes. Up and running in under 10 minutes.</p>
+    </div>
+    <div class="shop-feat">
+      <div class="shop-feat-icon">🔔</div>
+      <h4>Visit alerts</h4>
+      <p>Get notified when a Gold-tier customer walks in. A personal greeting goes a long way.</p>
+    </div>
+    <div class="shop-feat">
+      <div class="shop-feat-icon">📈</div>
+      <h4>Retention analytics</h4>
+      <p>Weekly report on retention rate, churn-risk customers, and how your loyalty spend performs.</p>
+    </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- TIERS -->
+<section id="tiers">
+  <div class="tiers-inner">
+    <div class="label">Gamified loyalty</div>
+    <h2>Earn more,<br><em>unlock more</em></h2>
+    <p class="sub">Every visit builds towards the next tier. Higher tiers mean better earn rates and priority offers.</p>
+
+    <div class="tiers-grid">
+      <div class="tier-card reveal">
+        <span class="tier-icon">🥉</span>
+        <div class="tier-name">Bronze</div>
+        <div class="tier-range">0 – 499 coins</div>
+        <div class="tier-earn">10%</div>
+        <div class="tier-earn-lbl">earn rate on every payment</div>
+        <div class="tier-perks">
+          <span class="tier-perk">Coin wallet & history</span>
+          <span class="tier-perk">One-tap redemption</span>
+        </div>
+      </div>
+      <div class="tier-card featured reveal">
+        <span class="tier-icon">🥈</span>
+        <div class="tier-name">Silver</div>
+        <div class="tier-range">500 – 999 coins</div>
+        <div class="tier-earn">12%</div>
+        <div class="tier-earn-lbl">earn rate on every payment</div>
+        <div class="tier-perks">
+          <span class="tier-perk">Everything in Bronze</span>
+          <span class="tier-perk">Early access to store offers</span>
+          <span class="tier-perk">Visit streak bonuses</span>
+        </div>
+      </div>
+      <div class="tier-card reveal">
+        <span class="tier-icon">🥇</span>
+        <div class="tier-name">Gold</div>
+        <div class="tier-range">1000+ coins</div>
+        <div class="tier-earn">15%</div>
+        <div class="tier-earn-lbl">earn rate on every payment</div>
+        <div class="tier-perks">
+          <span class="tier-perk">Everything in Silver</span>
+          <span class="tier-perk">2× coins on offer days</span>
+          <span class="tier-perk">VIP redemption priority</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="label">Simple pricing</div>
+  <h2>Flat monthly.<br><em>No transaction cuts.</em></h2>
+  <p class="sub">We don't take a percentage of your sales. Ever. Pay a flat fee and keep everything you earn.</p>
+
+  <div class="pricing-grid">
+    <div class="plan reveal">
+      <div class="plan-name">Base</div>
+      <div class="plan-price"><sup>₹</sup>299</div>
+      <div class="plan-period">per month</div>
+      <p class="plan-desc">Everything you need to launch loyalty at your shop.</p>
+      <div class="plan-feats">
+        <div class="plan-feat">Unlimited customer registrations</div>
+        <div class="plan-feat">Loyalty dashboard & analytics</div>
+        <div class="plan-feat">UPI QR integration</div>
+        <div class="plan-feat">Redemption management</div>
+        <div class="plan-feat">Visit history & tier tracking</div>
+      </div>
+      <a href="#cta" class="plan-btn dark">Start free trial</a>
+    </div>
+
+    <div class="plan featured reveal">
+      <div class="plan-name">Pro</div>
+      <div class="plan-price"><sup>₹</sup>499</div>
+      <div class="plan-period">per month</div>
+      <p class="plan-desc">Re-engage customers before they switch to quick commerce.</p>
+      <div class="plan-feats">
+        <div class="plan-feat">Everything in Base</div>
+        <div class="plan-feat">Push notification campaigns</div>
+        <div class="plan-feat">Timed 2× coin events</div>
+        <div class="plan-feat">Churn-risk customer alerts</div>
+        <div class="plan-feat">Priority support</div>
+      </div>
+      <a href="#cta" class="plan-btn light">Get started →</a>
+    </div>
+  </div>
+  <p class="pricing-note reveal">Promoted offer slots available at ₹199 per 48-hour feature window.</p>
+</section>
+
+<hr>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-count reveal"><div class="live-dot"></div>247 shops on the waitlist</div>
+  <h2 class="reveal">Ready to keep<br><em>your regulars yours?</em></h2>
+  <p class="sub reveal">First 50 shops get 3 months free. Leave your number and we'll reach out when we're in your area.</p>
+  <div class="cta-form reveal">
+    <input class="cta-input" type="tel" placeholder="Your phone number" id="ctaPhone" />
+    <button class="cta-submit" onclick="handleWaitlist()">Join waitlist</button>
+  </div>
+  <p class="cta-note" id="ctaNote">No spam. No cold calls. Just an update when Sikka is live near you.</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="#" class="foot-logo">
+    <div class="logo-coin" style="width:22px;height:22px;font-size:10px;">₹</div>
+    Sikka
+  </a>
+  <div class="foot-links">
+    <a href="#how">How it works</a>
+    <a href="#shops">For shops</a>
+    <a href="#pricing">Pricing</a>
+    <a href="mailto:hello@sikka.in">Contact</a>
+  </div>
+  <div class="foot-right">
+    <div>© 2025 Sikka Technologies</div>
+    <div class="foot-pilot"><div class="live-dot" style="margin-right:4px;"></div>Pilot live · Bengaluru</div>
+  </div>
+</footer>
+
+<script>
+// ── FLOATING COINS ──
+const canvas = document.getElementById('coin-canvas');
+function spawnCoin() {
+  const c = document.createElement('div');
+  c.className = 'fc';
+  const sz = 18 + Math.random() * 22;
+  c.style.cssText = `
+    width:${sz}px;height:${sz}px;
+    left:${Math.random()*100}%;
+    bottom:-40px;
+    font-size:${sz*0.38}px;
+    animation-duration:${10+Math.random()*10}s;
+    animation-delay:${Math.random()*4}s;
+  `;
+  canvas.appendChild(c);
+  const total = (parseFloat(c.style.animationDuration)+parseFloat(c.style.animationDelay)+1)*1000;
+  setTimeout(()=>c.remove(), total);
+}
+for(let i=0;i<6;i++) setTimeout(spawnCoin, i*400);
+setInterval(spawnCoin, 900);
+
+// ── PHONE COINS ──
+const pcWrap = document.getElementById('phoneCoins');
+function spawnPhoneCoin() {
+  if(!pcWrap) return;
+  const c = document.createElement('div');
+  c.className = 'phone-coin';
+  c.style.cssText = `left:${20+Math.random()*60}%;bottom:${10+Math.random()*20}%;animation-duration:${1.8+Math.random()*1.2}s;animation-delay:${Math.random()*1.5}s;`;
+  pcWrap.appendChild(c);
+  setTimeout(()=>c.remove(), 4000);
+}
+setInterval(spawnPhoneCoin, 700);
+
+// ── LIVE COIN COUNTER ──
+let coinVal = 325;
+setInterval(()=>{
+  coinVal += Math.floor(Math.random()*6+4);
+  const el = document.getElementById('liveCoins');
+  if(!el) return;
+  el.textContent = coinVal;
+  el.classList.add('bump');
+  setTimeout(()=>el.classList.remove('bump'), 250);
+}, 3800);
+
+// ── SCROLL REVEAL ──
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){ e.target.classList.add('on'); obs.unobserve(e.target); }
+  });
+},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// ── WAITLIST ──
+function handleWaitlist() {
+  const ph = document.getElementById('ctaPhone');
+  const btn = document.querySelector('.cta-submit');
+  const note = document.getElementById('ctaNote');
+  if(!ph.value.trim() || ph.value.replace(/\D/g,'').length < 10) {
+    ph.style.borderColor = '#E24B4A';
+    setTimeout(()=>ph.style.borderColor='',1800);
+    return;
+  }
+  btn.textContent = 'You\'re on the list ✓';
+  btn.style.background = '#1A6645';
+  ph.value = '';
+  note.textContent = 'We\'ll reach out when Sikka is live near you.';
+}
+
+document.getElementById('ctaPhone').addEventListener('keydown', e => {
+  if(e.key === 'Enter') handleWaitlist();
+});
+</script>
+</body>
+</html>
