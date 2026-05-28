@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuthStore } from "@/stores/auth";
 
 import type { UserRole } from "@/types/auth";
 import { colors, typography, spacing } from "@/lib/theme";
@@ -22,6 +24,15 @@ export default function OtpScreen() {
 
   const filledCount = code.filter(Boolean).length;
   const isComplete = filledCount === OTP_LENGTH;
+  const { setToken } = useAuthStore();
+
+  async function handleBypassVerify() {
+    // TODO: replace with real authApi.verifyOtp call once backend is ready
+    const devToken = "dev-bypass-token";
+    await AsyncStorage.setItem("auth_token", devToken);
+    setToken(devToken);
+    router.replace("/(tabs)");
+  }
 
   function handleCodeChange(nextCode: string[], nextFocus: number) {
     setCode(nextCode);
@@ -69,7 +80,7 @@ export default function OtpScreen() {
             label="Verify and continue"
             accent="gold"
             disabled={!isComplete}
-            onPress={() => { /* TODO: call authApi.verifyOtp */ }}
+            onPress={handleBypassVerify}
           />
           <TouchableOpacity style={styles.troubleButton}>
             <Text style={styles.troubleIcon}>🔒</Text>
